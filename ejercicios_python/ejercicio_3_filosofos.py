@@ -60,18 +60,18 @@ def filosofo(id, rondas=3):
         tenedor_izq = id
         tenedor_der = (id + 1) % NUM_FILOSOFOS
         
-        # =========================================================================
-        # INICIO TODO: Implementar adquisición y liberación segura de tenedores
-        # =========================================================================
-        # PISTA: Implementa la solución asimétrica de Dijkstra (romper Espera Circular)
-        # o utiliza un semáforo árbitro para evitar el interbloqueo (Deadlock).
-        #
-        # TODO: Adquiere los tenedores adyacentes de forma segura, invoca comer(id)
-        # y libera los tenedores:
-        pass
-        # =========================================================================
-        # FIN TODO
-        # =========================================================================
+        # Definimos el orden 
+        if id % 2 == 0:
+            primer_tenedor = tenedores[tenedor_izq]
+            segundo_tenedor = tenedores[tenedor_der]
+        else:
+            primer_tenedor = tenedores[tenedor_der]
+            segundo_tenedor = tenedores[tenedor_izq]
+            
+        # Adquirimos los dos tenedores
+        with primer_tenedor:
+            with segundo_tenedor:
+                comer(id)
 
 if __name__ == "__main__":
     print("=" * 60)

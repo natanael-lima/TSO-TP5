@@ -57,40 +57,48 @@ class BarberiaMonitor:
                 print(f"🚪 [SALA LLENA] Cliente {cliente_id} se va sin cortarse el pelo.")
                 return False
                 
-            # =====================================================================
-            # TODO PARA EL ESTUDIANTE:
-            # Implementa la sincronización del cliente con las Variables de Condición:
-            # 1. Tomar asiento en sala de espera (self.clientes_esperando += 1).
-            # 2. Despertar al barbero por si duerme (self.cond_barbero.notify()).
-            # 3. Esperar mientras el sillón del barbero esté ocupado (self.cond_sala_espera.wait()).
-            # 4. Pasar al sillón del barbero:
-            #    - decrementar self.clientes_esperando
-            #    - marcar self.silla_barbero_ocupada = True y self.cliente_listo_en_sillon = True
-            #    - notificar al barbero que el cliente ya está en el sillón (self.cond_barbero.notify())
-            # 5. Esperar a que el barbero termine el corte (self.cond_corte.wait()).
-            # 6. Al terminar el corte:
-            #    - resetear self.silla_barbero_ocupada = False y self.cliente_listo_en_sillon = False
-            #    - avisar al barbero y al siguiente cliente en espera (notify).
-            # 7. Retornar True.
-            # =====================================================================
-            pass
-            return False
+            self.clientes_esperando += 1
+            self.cond_barbero.notify()  # Despierta al barbero si está durmiendo
+            
+            # Espera mientras la silla del barbero esté ocupada
+            while self.silla_barbero_ocupada:
+                self.cond_sala_espera.wait()
+                if not self.barberia_abierta:
+                    return False
+            
+            # Pasa al sillón del barbero
+            self.silla_barbero_ocupada = True
+            self.clientes_esperando -= 1
+            self.cliente_listo_en_sillon = False
+            self.cond_barbero.notify()
+            
+            # Espera a que el barbero termine el corte
+            while not self.corte_terminado:
+                self.cond_corte.wait()
+                
+            # Limpieza de estados y avisos al terminar
+            self.corte_terminado = False
+            self.silla_barbero_ocupada = False
+            self.cliente_listo_en_sillon = False
+            self.cond_sala_espera.notify()
+            self.cond_barbero.notify()
+            return True
+
 
     def atender_siguiente_cliente(self):
         """
         Invocado cíclicamente por el hilo Barbero.
         """
         with self.lock:
-            # =====================================================================
-            # TODO PARA EL ESTUDIANTE:
-            # 1. Mientras no haya un cliente listo en el sillón y la barbería siga abierta:
-            #    - Si hay clientes en espera, notificar a la sala (self.cond_sala_espera.notify()).
-            #    - Dormir/esperar en self.cond_barbero.wait().
-            # 2. Si la barbería cerró y no quedan clientes, retornar False.
-            # 3. Si hay un cliente listo en el sillón, retornar True.
-            # =====================================================================
-            pass
-            return False
+            while not self.cliente_listo_en_sillon and self.barberia_abierta:
+                if self.clientes_esperando > 0:
+                    self.cond_sala_espera.notify()
+                self.cond_barbero.wait()
+                
+            if not self.barberia_abierta and not self.cliente_listo_en_sillon:
+                return False
+            return True
+
 
     # Alias pedagógico
     esperar_cliente_para_corte = atender_siguiente_cliente
